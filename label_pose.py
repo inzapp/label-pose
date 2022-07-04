@@ -61,16 +61,6 @@ class LabelPose:
         # 15 : Back
         return [[0, 0, 0] for _ in range(self.max_limb_size)]  # use flag for index 0
 
-    def convert_label_to_string(self, label):
-        global g_win_size
-        s = ''
-        for use, x, y in label:
-            print(x, y)
-            x = x / float(g_win_size[0])
-            y = y / float(g_win_size[1])
-            s += f'{use:.1f} {x:.6f} {y:.6f}\n'
-        return s
-
     def circle(self, img, x, y):
        img = cv2.circle(img, (x, y), 8, (128, 255, 128), thickness=2, lineType=cv2.LINE_AA)
        img = cv2.circle(img, (x, y), 3, (32, 32, 192), thickness=-1, lineType=cv2.LINE_AA)
@@ -84,8 +74,14 @@ class LabelPose:
         return img
 
     def save_label(self):
+        global g_win_size
+        label_content = ''
+        for use, x, y in self.cur_label:
+            x = x / float(g_win_size[0])
+            y = y / float(g_win_size[1])
+            label_content += f'{use:.1f} {x:.6f} {y:.6f}\n'
         with open(self.cur_label_path, 'wt') as f:
-            f.writelines(self.convert_label_to_string(self.cur_label))
+            f.writelines(label_content)
 
     def run(self):
         global g_win_name, g_win_size
@@ -103,19 +99,19 @@ class LabelPose:
             while True:
                 res = cv2.waitKey(0)
                 if res == ord('d'):  # go to next if input key was 'd'
+                    self.save_label()
                     if index == len(self.image_paths) - 1:
                         print('Current image is last image')
                     else:
-                        self.save_label()
                         self.limb_index = 0
                         self.cur_label = self.reset_label()
                         index += 1
                         break
                 elif res == ord('a'):  # go to previous image if input key was 'a'
+                    self.save_label()
                     if index == 0:
                         print('Current image is first image')
                     else:
-                        self.save_label()
                         self.limb_index = 0
                         self.cur_label = self.reset_label()
                         index -= 1
@@ -127,16 +123,16 @@ class LabelPose:
     def mouse_callback(self, event, x, y, flag, _):
         if event == 0 and flag == 0:  # no click mouse moving
             cv2.imshow(g_win_name, self.img)
-        elif event == 4 and flag == 0:  # end left click
+        elif event == 4 and flag == 0:  # left click end
             x, y = x, y  # get img position
             self.cur_label[self.limb_index] = [1, x, y]
             self.img = self.update()
             self.limb_index += 1
             if self.limb_index == self.max_limb_size:
                 self.limb_index = 0
-            pass
-        elif event == 5 and flag == 0:  # right click
-            pass
+        elif event == 5 and flag == 0:  # right click end
+            self.cur_label[self.limb_index] = [0, 0, 0]
+            self.img = self.update()
 
 
 if __name__ == '__main__':
