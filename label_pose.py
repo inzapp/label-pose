@@ -1,9 +1,30 @@
 import cv2
 import numpy as np
 
+from enum import Enum, auto
+
 
 g_win_size = (416, 768)
 g_win_name = 'LabelPose v1.0 by Inzapp'
+
+
+class Limb(Enum):
+    HEAD = 0
+    NECK = auto()
+    RIGHT_SHOULDER = auto()
+    RIGHT_ELBOW = auto()
+    RIGHT_WRIST = auto()
+    LEFT_SHOULDER = auto()
+    LEFT_ELBOW = auto()
+    LEFT_WRIST = auto()
+    RIGHT_HIP = auto()
+    RIGHT_KNEE = auto()
+    RIGHT_ANKLE = auto()
+    LEFT_HIP = auto()
+    LEFT_KNEE = auto()
+    LEFT_ANKLE = auto()
+    CHEST = auto()
+    BACK = auto()
 
 
 class LabelPose:
@@ -14,12 +35,13 @@ class LabelPose:
             exit(0)
         self.raw = None
         self.guide_img = None
-        self.show_skeleton = False
+        self.show_skeleton = True
         self.cur_image_path = ''
         self.cur_label_path = ''
         self.max_limb_size = 16
         self.limb_index = 0
         self.cur_label = self.reset_label()
+        self.guide_label = self.reset_label()
 
     def init_image_paths(self):
         import natsort
@@ -55,52 +77,42 @@ class LabelPose:
             img = cv2.line(img, (p1[1], p1[2]), (p2[1], p2[2]), (64, 255, 255), thickness=2, lineType=cv2.LINE_AA)
         return img
 
+    def get_limb_guide_img(self):
+        img = self.guide_img.copy()
+        img = self.circle(img, self.guide_label[self.limb_index][1], self.guide_label[self.limb_index][2])
+        return img
+
     def update(self):
         global g_win_name
         img = self.raw.copy()
         if self.show_skeleton:
-            # 0  : Head
-            # 1  : Neck
-            # 2  : Right Shoulder
-            # 3  : Right Elbow
-            # 4  : Right Wrist
-            # 5  : Left Shoulder
-            # 6  : Left Elbow
-            # 7  : Left Wrist
-            # 8  : Right Hip
-            # 9  : Right Knee
-            # 10 : Right Ankle
-            # 11 : Left Hip
-            # 12 : Left Knee
-            # 13 : Left Ankle
-            # 14 : Chest
-            # 15 : Back
-            img = self.line_if_valid(img, self.cur_label[0], self.cur_label[1])  # head to neck
+            img = self.line_if_valid(img, self.cur_label[Limb.HEAD.value], self.cur_label[Limb.NECK.value])  # head to neck
 
-            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[2])  # neck to right shoulder
-            img = self.line_if_valid(img, self.cur_label[2], self.cur_label[3])  # right shoulder to right elbow
-            img = self.line_if_valid(img, self.cur_label[3], self.cur_label[4])  # right elbow to right wrist
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.RIGHT_SHOULDER.value])  # neck to right shoulder
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_SHOULDER.value], self.cur_label[Limb.RIGHT_ELBOW.value])  # right shoulder to right elbow
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_ELBOW.value], self.cur_label[Limb.RIGHT_WRIST.value])  # right elbow to right wrist
 
-            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[5])  # neck to left shoulder
-            img = self.line_if_valid(img, self.cur_label[5], self.cur_label[6])  # left shoulder to left elbow
-            img = self.line_if_valid(img, self.cur_label[6], self.cur_label[7])  # left elbow to left wrist
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.LEFT_SHOULDER.value])  # neck to left shoulder
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_SHOULDER.value], self.cur_label[Limb.LEFT_ELBOW.value])  # left shoulder to left elbow
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_ELBOW.value], self.cur_label[Limb.LEFT_WRIST.value])  # left elbow to left wrist
 
-            img = self.line_if_valid(img, self.cur_label[8], self.cur_label[9])  # right hip to right knee
-            img = self.line_if_valid(img, self.cur_label[9], self.cur_label[10])  # right knee to right anlke
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_HIP.value], self.cur_label[Limb.RIGHT_KNEE.value])  # right hip to right knee
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_KNEE.value], self.cur_label[Limb.RIGHT_ANKLE.value])  # right knee to right anlke
 
-            img = self.line_if_valid(img, self.cur_label[11], self.cur_label[12])  # right hip to right knee
-            img = self.line_if_valid(img, self.cur_label[12], self.cur_label[13])  # right knee to right anlke
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_HIP.value], self.cur_label[Limb.LEFT_KNEE.value])  # right hip to right knee
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_KNEE.value], self.cur_label[Limb.LEFT_ANKLE.value])  # right knee to right anlke
 
-            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[14])  # neck to chest
-            img = self.line_if_valid(img, self.cur_label[14], self.cur_label[8])  # chest to right hip
-            img = self.line_if_valid(img, self.cur_label[14], self.cur_label[11])  # chest to left hip
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.CHEST.value])  # neck to chest
+            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.RIGHT_HIP.value])  # chest to right hip
+            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.LEFT_HIP.value])  # chest to left hip
 
-            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[15])  # neck to back
-            img = self.line_if_valid(img, self.cur_label[15], self.cur_label[8])  # back to right hip
-            img = self.line_if_valid(img, self.cur_label[15], self.cur_label[11])  # back to left hip
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.BACK.value])  # neck to back
+            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.RIGHT_HIP.value])  # back to right hip
+            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.LEFT_HIP.value])  # back to left hip
         for use, x, y in self.cur_label:
-            if use == 1:
+            if use == Limb.NECK.value:
                 img = self.circle(img, x, y)
+        img = np.append(img, self.get_limb_guide_img(), axis=1)
         cv2.imshow(g_win_name, img)
 
     def save_label(self):
@@ -113,28 +125,34 @@ class LabelPose:
         with open(self.cur_label_path, 'wt') as f:
             f.writelines(label_content)
 
-    def load_label_if_exists(self):
+    def load_label_if_exists(self, guide=False):
         import os
         global g_win_size
-        if os.path.exists(self.cur_label_path) and os.path.isfile(self.cur_label_path):
-            with open(self.cur_label_path, 'rt') as f:
+        label_path = './guide.txt' if guide else self.cur_label_path
+        if os.path.exists(label_path) and os.path.isfile(label_path):
+            with open(label_path, 'rt') as f:
                 lines = f.readlines()
             for i in range(len(lines)):
                 use, x, y = list(map(float, lines[i].split()))
-                self.cur_label[i] = [int(use), int(x * float(g_win_size[0])), int(y * float(g_win_size[1]))]
-        self.update()
+                if guide:
+                    self.guide_label[i] = [int(use), int(x * float(g_win_size[0])), int(y * float(g_win_size[1]))]
+                else:
+                    self.cur_label[i] = [int(use), int(x * float(g_win_size[0])), int(y * float(g_win_size[1]))]
+        if not guide:
+            self.update()
 
     def run(self):
         global g_win_name, g_win_size
         index = 0
         cv2.namedWindow(g_win_name)
         cv2.setMouseCallback(g_win_name, self.mouse_callback)
+        self.guide_img = self.resize(cv2.imdecode(np.fromfile('./guide.jpg', dtype=np.uint8), cv2.IMREAD_COLOR), g_win_size)
+        self.load_label_if_exists(guide=True)
         while True:
             self.cur_image_path = self.image_paths[index]
             print(f'[{index}] : {self.cur_image_path}')
             self.cur_label_path = f'{self.cur_image_path[:-4]}.txt'
-            self.raw = cv2.imdecode(np.fromfile(self.cur_image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
-            self.raw = self.resize(self.raw, g_win_size)
+            self.raw = self.resize(cv2.imdecode(np.fromfile(self.cur_image_path, dtype=np.uint8), cv2.IMREAD_COLOR), g_win_size)
             self.load_label_if_exists()
             self.update()
             while True:
