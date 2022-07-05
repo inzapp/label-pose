@@ -14,6 +14,7 @@ class LabelPose:
             exit(0)
         self.raw = None
         self.guide_img = None
+        self.show_skeleton = False
         self.cur_image_path = ''
         self.cur_label_path = ''
         self.max_limb_size = 16
@@ -42,32 +43,61 @@ class LabelPose:
             return cv2.resize(img, size, interpolation=cv2.INTER_LINEAR)
 
     def reset_label(self):
-        # 0  : Head
-        # 1  : Neck
-        # 2  : Right Shoulder
-        # 3  : Right Elbow
-        # 4  : Right Wrist
-        # 5  : Left Shoulder
-        # 6  : Left Elbow
-        # 7  : Left Wrist
-        # 8  : Right Hip
-        # 9  : Right Knee
-        # 10 : Right Ankle
-        # 11 : Left Hip
-        # 12 : Left Knee
-        # 13 : Left Ankle
-        # 14 : Chest
-        # 15 : Back
         return [[0, 0, 0] for _ in range(self.max_limb_size)]  # use flag for index 0
 
     def circle(self, img, x, y):
-       img = cv2.circle(img, (x, y), 8, (128, 255, 128), thickness=2, lineType=cv2.LINE_AA)
-       img = cv2.circle(img, (x, y), 3, (32, 32, 192), thickness=-1, lineType=cv2.LINE_AA)
-       return img
+        img = cv2.circle(img, (x, y), 8, (128, 255, 128), thickness=2, lineType=cv2.LINE_AA)
+        img = cv2.circle(img, (x, y), 3, (32, 32, 192), thickness=-1, lineType=cv2.LINE_AA)
+        return img
+
+    def line_if_valid(self, img, p1, p2):
+        if p1[0] == 1 and p2[0] == 1:
+            img = cv2.line(img, (p1[1], p1[2]), (p2[1], p2[2]), (64, 255, 255), thickness=2, lineType=cv2.LINE_AA)
+        return img
 
     def update(self):
         global g_win_name
         img = self.raw.copy()
+        if self.show_skeleton:
+            # 0  : Head
+            # 1  : Neck
+            # 2  : Right Shoulder
+            # 3  : Right Elbow
+            # 4  : Right Wrist
+            # 5  : Left Shoulder
+            # 6  : Left Elbow
+            # 7  : Left Wrist
+            # 8  : Right Hip
+            # 9  : Right Knee
+            # 10 : Right Ankle
+            # 11 : Left Hip
+            # 12 : Left Knee
+            # 13 : Left Ankle
+            # 14 : Chest
+            # 15 : Back
+            img = self.line_if_valid(img, self.cur_label[0], self.cur_label[1])  # head to neck
+
+            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[2])  # neck to right shoulder
+            img = self.line_if_valid(img, self.cur_label[2], self.cur_label[3])  # right shoulder to right elbow
+            img = self.line_if_valid(img, self.cur_label[3], self.cur_label[4])  # right elbow to right wrist
+
+            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[5])  # neck to left shoulder
+            img = self.line_if_valid(img, self.cur_label[5], self.cur_label[6])  # left shoulder to left elbow
+            img = self.line_if_valid(img, self.cur_label[6], self.cur_label[7])  # left elbow to left wrist
+
+            img = self.line_if_valid(img, self.cur_label[8], self.cur_label[9])  # right hip to right knee
+            img = self.line_if_valid(img, self.cur_label[9], self.cur_label[10])  # right knee to right anlke
+
+            img = self.line_if_valid(img, self.cur_label[11], self.cur_label[12])  # right hip to right knee
+            img = self.line_if_valid(img, self.cur_label[12], self.cur_label[13])  # right knee to right anlke
+
+            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[14])  # neck to chest
+            img = self.line_if_valid(img, self.cur_label[14], self.cur_label[8])  # chest to right hip
+            img = self.line_if_valid(img, self.cur_label[14], self.cur_label[11])  # chest to left hip
+
+            img = self.line_if_valid(img, self.cur_label[1], self.cur_label[15])  # neck to back
+            img = self.line_if_valid(img, self.cur_label[15], self.cur_label[8])  # back to right hip
+            img = self.line_if_valid(img, self.cur_label[15], self.cur_label[11])  # back to left hip
         for use, x, y in self.cur_label:
             if use == 1:
                 img = self.circle(img, x, y)
@@ -127,13 +157,16 @@ class LabelPose:
                         self.cur_label = self.reset_label()
                         index -= 1
                         break
+                elif res == ord('w'):  # toggle show skeleton
+                    self.show_skeleton = not self.show_skeleton
+                    break
                 elif res == ord('e'):  # go to next limb
                     self.limb_index += 1
                     if self.limb_index == self.max_limb_size:
                         self.limb_index = 0
                     print(f'limb index : {self.limb_index}')
                     break
-                elif res == ord('q'):  # go to next limb
+                elif res == ord('q'):  # go to prev limb
                     self.limb_index -= 1
                     if self.limb_index == -1:
                         self.limb_index = self.max_limb_size - 1
