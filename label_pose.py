@@ -83,6 +83,17 @@ class LabelPose:
         with open(self.cur_label_path, 'wt') as f:
             f.writelines(label_content)
 
+    def load_label_if_exists(self):
+        import os
+        global g_win_size
+        if os.path.exists(self.cur_label_path) and os.path.isfile(self.cur_label_path):
+            with open(self.cur_label_path, 'rt') as f:
+                lines = f.readlines()
+            for i in range(len(lines)):
+                use, x, y = list(map(float, lines[i].split()))
+                self.cur_label[i] = [int(use), int(x * float(g_win_size[0])), int(y * float(g_win_size[1]))]
+        self.img = self.update()
+
     def run(self):
         global g_win_name, g_win_size
         index = 0
@@ -95,6 +106,7 @@ class LabelPose:
             self.raw = cv2.imdecode(np.fromfile(self.cur_image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
             self.raw = self.resize(self.raw, g_win_size)
             self.img = self.raw.copy()
+            self.load_label_if_exists()
             cv2.imshow(g_win_name, self.img)
             while True:
                 res = cv2.waitKey(0)
@@ -133,6 +145,9 @@ class LabelPose:
         elif event == 5 and flag == 0:  # right click end
             self.cur_label[self.limb_index] = [0, 0, 0]
             self.img = self.update()
+            # self.limb_index -= 1
+            # if self.limb_index == -1:
+            #     self.limb_index = self.max_limb_size - 1
 
 
 if __name__ == '__main__':
