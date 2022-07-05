@@ -38,7 +38,7 @@ class LabelPose:
         self.show_skeleton = True
         self.cur_image_path = ''
         self.cur_label_path = ''
-        self.max_limb_size = 16
+        self.max_limb_size = len(Limb)
         self.limb_index = 0
         self.cur_label = self.reset_label()
         self.guide_label = self.reset_label()
@@ -78,37 +78,43 @@ class LabelPose:
         return img
 
     def get_limb_guide_img(self):
+        global g_win_size
         img = self.guide_img.copy()
         img = self.circle(img, self.guide_label[self.limb_index][1], self.guide_label[self.limb_index][2])
+        for i, limb in enumerate(list(Limb)):
+            if i == self.limb_index:
+                img = cv2.putText(img, limb.name, (0, 10 + (i * 15 + 2)), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(255, 255, 255), lineType=cv2.LINE_AA)
+            else:
+                img = cv2.putText(img, limb.name, (0, 10 + (i * 15 + 2)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(128, 128, 128), lineType=cv2.LINE_AA)
         return img
 
     def update(self):
         global g_win_name
         img = self.raw.copy()
         if self.show_skeleton:
-            img = self.line_if_valid(img, self.cur_label[Limb.HEAD.value], self.cur_label[Limb.NECK.value])  # head to neck
+            img = self.line_if_valid(img, self.cur_label[Limb.HEAD.value], self.cur_label[Limb.NECK.value])
 
-            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.RIGHT_SHOULDER.value])  # neck to right shoulder
-            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_SHOULDER.value], self.cur_label[Limb.RIGHT_ELBOW.value])  # right shoulder to right elbow
-            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_ELBOW.value], self.cur_label[Limb.RIGHT_WRIST.value])  # right elbow to right wrist
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.RIGHT_SHOULDER.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_SHOULDER.value], self.cur_label[Limb.RIGHT_ELBOW.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_ELBOW.value], self.cur_label[Limb.RIGHT_WRIST.value])
 
-            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.LEFT_SHOULDER.value])  # neck to left shoulder
-            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_SHOULDER.value], self.cur_label[Limb.LEFT_ELBOW.value])  # left shoulder to left elbow
-            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_ELBOW.value], self.cur_label[Limb.LEFT_WRIST.value])  # left elbow to left wrist
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.LEFT_SHOULDER.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_SHOULDER.value], self.cur_label[Limb.LEFT_ELBOW.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_ELBOW.value], self.cur_label[Limb.LEFT_WRIST.value])
 
-            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_HIP.value], self.cur_label[Limb.RIGHT_KNEE.value])  # right hip to right knee
-            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_KNEE.value], self.cur_label[Limb.RIGHT_ANKLE.value])  # right knee to right anlke
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_HIP.value], self.cur_label[Limb.RIGHT_KNEE.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_KNEE.value], self.cur_label[Limb.RIGHT_ANKLE.value])
 
-            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_HIP.value], self.cur_label[Limb.LEFT_KNEE.value])  # right hip to right knee
-            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_KNEE.value], self.cur_label[Limb.LEFT_ANKLE.value])  # right knee to right anlke
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_HIP.value], self.cur_label[Limb.LEFT_KNEE.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_KNEE.value], self.cur_label[Limb.LEFT_ANKLE.value])
 
-            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.CHEST.value])  # neck to chest
-            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.RIGHT_HIP.value])  # chest to right hip
-            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.LEFT_HIP.value])  # chest to left hip
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.CHEST.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.RIGHT_HIP.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.LEFT_HIP.value])
 
-            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.BACK.value])  # neck to back
-            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.RIGHT_HIP.value])  # back to right hip
-            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.LEFT_HIP.value])  # back to left hip
+            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.BACK.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.RIGHT_HIP.value])
+            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.LEFT_HIP.value])
         for use, x, y in self.cur_label:
             if use == Limb.NECK.value:
                 img = self.circle(img, x, y)
