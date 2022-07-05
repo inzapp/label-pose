@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-g_win_size = (768, 768)
+g_win_size = (416, 768)
 g_win_name = 'LabelPose v1.0 by Inzapp'
 
 
@@ -13,7 +13,6 @@ class LabelPose:
             print('No image files in path.')
             exit(0)
         self.raw = None
-        self.img = None
         self.guide_img = None
         self.cur_image_path = ''
         self.cur_label_path = ''
@@ -67,18 +66,19 @@ class LabelPose:
        return img
 
     def update(self):
+        global g_win_name
         img = self.raw.copy()
         for use, x, y in self.cur_label:
             if use == 1:
-                self.img = self.circle(img, x, y)
-        return img
+                img = self.circle(img, x, y)
+        cv2.imshow(g_win_name, img)
 
     def save_label(self):
         global g_win_size
         label_content = ''
         for use, x, y in self.cur_label:
-            x = x / float(g_win_size[0])
-            y = y / float(g_win_size[1])
+            x = x / float(g_win_size[0] - 1)
+            y = y / float(g_win_size[1] - 1)
             label_content += f'{use:.1f} {x:.6f} {y:.6f}\n'
         with open(self.cur_label_path, 'wt') as f:
             f.writelines(label_content)
@@ -92,7 +92,7 @@ class LabelPose:
             for i in range(len(lines)):
                 use, x, y = list(map(float, lines[i].split()))
                 self.cur_label[i] = [int(use), int(x * float(g_win_size[0])), int(y * float(g_win_size[1]))]
-        self.img = self.update()
+        self.update()
 
     def run(self):
         global g_win_name, g_win_size
@@ -105,9 +105,8 @@ class LabelPose:
             self.cur_label_path = f'{self.cur_image_path[:-4]}.txt'
             self.raw = cv2.imdecode(np.fromfile(self.cur_image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
             self.raw = self.resize(self.raw, g_win_size)
-            self.img = self.raw.copy()
             self.load_label_if_exists()
-            cv2.imshow(g_win_name, self.img)
+            self.update()
             while True:
                 res = cv2.waitKey(0)
                 if res == ord('d'):  # go to next if input key was 'd'
@@ -128,26 +127,34 @@ class LabelPose:
                         self.cur_label = self.reset_label()
                         index -= 1
                         break
+                elif res == ord('e'):  # go to next limb
+                    self.limb_index += 1
+                    if self.limb_index == self.max_limb_size:
+                        self.limb_index = 0
+                    print(f'limb index : {self.limb_index}')
+                    break
+                elif res == ord('q'):  # go to next limb
+                    self.limb_index -= 1
+                    if self.limb_index == -1:
+                        self.limb_index = self.max_limb_size - 1
+                    print(f'limb index : {self.limb_index}')
+                    break
                 elif res == 27:  # exit if input key was ESC
                     self.save_label()
                     exit(0)
 
     def mouse_callback(self, event, x, y, flag, _):
         if event == 0 and flag == 0:  # no click mouse moving
-            cv2.imshow(g_win_name, self.img)
+            pass
         elif event == 4 and flag == 0:  # left click end
             x, y = x, y  # get img position
             self.cur_label[self.limb_index] = [1, x, y]
-            self.img = self.update()
-            self.limb_index += 1
-            if self.limb_index == self.max_limb_size:
-                self.limb_index = 0
+            self.update()
+            self.save_label()
         elif event == 5 and flag == 0:  # right click end
             self.cur_label[self.limb_index] = [0, 0, 0]
-            self.img = self.update()
-            # self.limb_index -= 1
-            # if self.limb_index == -1:
-            #     self.limb_index = self.max_limb_size - 1
+            self.update()
+            self.save_label()
 
 
 if __name__ == '__main__':
