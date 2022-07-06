@@ -65,7 +65,7 @@ class LabelPose:
             return cv2.resize(img, size, interpolation=cv2.INTER_LINEAR)
 
     def reset_label(self):
-        return [[0, 0, 0] for _ in range(self.max_limb_size)]  # use flag for index 0
+        return [[0, 0, 0] for _ in range(self.max_limb_size)]  # [confidence, x_pos, y_pos]
 
     def circle(self, img, x, y):
         img = cv2.circle(img, (x, y), 8, (128, 255, 128), thickness=2, lineType=cv2.LINE_AA)
@@ -77,18 +77,33 @@ class LabelPose:
             img = cv2.line(img, (p1[1], p1[2]), (p2[1], p2[2]), (64, 255, 255), thickness=2, lineType=cv2.LINE_AA)
         return img
 
-    def get_limb_guide_img(self):
+    def get_limb_guide_img(self, cur_x, cur_y):
         global g_win_size
         img = self.guide_img.copy()
         img = self.circle(img, self.guide_label[self.limb_index][1], self.guide_label[self.limb_index][2])
+        font_scale = 0.5
+        thickness = 1
         for i, limb in enumerate(list(Limb)):
+            tx = 0
+            ty = 10 + (i * 15 + 2)
             if i == self.limb_index:
-                img = cv2.putText(img, limb.name, (0, 10 + (i * 15 + 2)), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(255, 255, 255), lineType=cv2.LINE_AA)
+                font_face = cv2.FONT_HERSHEY_DUPLEX
+                color = (255, 255, 255)
             else:
-                img = cv2.putText(img, limb.name, (0, 10 + (i * 15 + 2)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(128, 128, 128), lineType=cv2.LINE_AA)
+                font_face = cv2.FONT_HERSHEY_SIMPLEX
+                color = (128, 128, 128)
+            text_size, _ = cv2.getTextSize(text=limb.name, fontFace=font_face, fontScale=font_scale, thickness=thickness)
+            tw, th = text_size
+            tx1 = tx
+            ty1 = ty - th
+            tx2 = tx + tw
+            ty2 = ty + 1
+            if i != self.limb_index and tx1 + g_win_size[0] <= cur_x <= tx2 + g_win_size[0] and ty1 <= cur_y <= ty2:
+                color = (224, 224, 224)
+            img = cv2.putText(img, limb.name, (tx, ty), fontFace=font_face, fontScale=font_scale, color=color, lineType=cv2.LINE_AA, thickness=thickness)
         return img
 
-    def update(self):
+    def update(self, cur_x=-1, cur_y=-1):
         global g_win_name
         img = self.raw.copy()
         if self.show_skeleton:
@@ -118,7 +133,7 @@ class LabelPose:
         for use, x, y in self.cur_label:
             if use == 1:
                 img = self.circle(img, x, y)
-        img = np.append(img, self.get_limb_guide_img(), axis=1)
+        img = np.append(img, self.get_limb_guide_img(cur_x, cur_y), axis=1)
         cv2.imshow(g_win_name, img)
 
     def save_label(self):
@@ -146,6 +161,10 @@ class LabelPose:
                     self.cur_label[i] = [int(use), int(x * float(g_win_size[0])), int(y * float(g_win_size[1]))]
         if not guide:
             self.update()
+
+    def is_cursor_in_image(self, x, y):
+        global g_win_size
+        return g_win_size[0] > x and g_win_size[1] > y
 
     def run(self):
         global g_win_name, g_win_size
@@ -202,9 +221,10 @@ class LabelPose:
 
     def mouse_callback(self, event, x, y, flag, _):
         if event == 0 and flag == 0:  # no click mouse moving
-            pass
+            self.update(x, y)
         elif event == 4 and flag == 0:  # left click end
-            x, y = x, y  # get img position
+            if not self.is_cursor_in_image(x, y):
+                return
             self.cur_label[self.limb_index] = [1, x, y]
             self.limb_index += 1
             if self.limb_index == self.max_limb_size:
@@ -212,6 +232,8 @@ class LabelPose:
             self.update()
             self.save_label()
         elif event == 5 and flag == 0:  # right click end
+            if not self.is_cursor_in_image(x, y):
+                return
             self.cur_label[self.limb_index] = [0, 0, 0]
             self.update()
             self.save_label()
