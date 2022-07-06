@@ -116,7 +116,7 @@ class LabelPose:
             img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.RIGHT_HIP.value])
             img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.LEFT_HIP.value])
         for use, x, y in self.cur_label:
-            if use == Limb.NECK.value:
+            if use == 1:
                 img = self.circle(img, x, y)
         img = np.append(img, self.get_limb_guide_img(), axis=1)
         cv2.imshow(g_win_name, img)
@@ -206,6 +206,9 @@ class LabelPose:
         elif event == 4 and flag == 0:  # left click end
             x, y = x, y  # get img position
             self.cur_label[self.limb_index] = [1, x, y]
+            self.limb_index += 1
+            if self.limb_index == self.max_limb_size:
+                self.limb_index = 0
             self.update()
             self.save_label()
         elif event == 5 and flag == 0:  # right click end
