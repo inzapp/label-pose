@@ -42,6 +42,9 @@ class LabelPose:
         self.limb_index = 0
         self.cur_label = self.reset_label()
         self.guide_label = self.reset_label()
+        self.font_scale = 0.5
+        self.text_positions = self.init_text_positions()
+        
 
     def init_image_paths(self):
         import natsort
@@ -56,6 +59,21 @@ class LabelPose:
         for i in range(len(image_paths)):
             image_paths[i] = image_paths[i].replace('\\', '/')
         return image_paths
+
+    def init_text_positions(self):
+        text_positions = []
+        for i, limb in enumerate(list(Limb)):
+            tx = 0
+            ty = 10 + (i * 15 + 2)
+            font_face = cv2.FONT_HERSHEY_SIMPLEX
+            text_size, _ = cv2.getTextSize(text=limb.name, fontFace=font_face, fontScale=self.font_scale, thickness=1)
+            tw, th = text_size
+            tx1 = tx
+            ty1 = ty - th
+            tx2 = tx + tw
+            ty2 = ty + 1
+            text_positions.append([tx, ty, tx1, ty1, tx2, ty2])  # put_text_tx, put_text_ty, rect_tx1, rect_ty1, rect_tx2, rect_ty2
+        return text_positions
 
     def resize(self, img, size):
         img_height, img_width = img.shape[:2]
@@ -81,26 +99,18 @@ class LabelPose:
         global g_win_size
         img = self.guide_img.copy()
         img = self.circle(img, self.guide_label[self.limb_index][1], self.guide_label[self.limb_index][2])
-        font_scale = 0.5
         thickness = 1
         for i, limb in enumerate(list(Limb)):
-            tx = 0
-            ty = 10 + (i * 15 + 2)
             if i == self.limb_index:
                 font_face = cv2.FONT_HERSHEY_DUPLEX
                 color = (255, 255, 255)
             else:
                 font_face = cv2.FONT_HERSHEY_SIMPLEX
                 color = (128, 128, 128)
-            text_size, _ = cv2.getTextSize(text=limb.name, fontFace=font_face, fontScale=font_scale, thickness=thickness)
-            tw, th = text_size
-            tx1 = tx
-            ty1 = ty - th
-            tx2 = tx + tw
-            ty2 = ty + 1
+            tx, ty, tx1, ty1, tx2, ty2 = self.text_positions[i]
             if i != self.limb_index and tx1 + g_win_size[0] <= cur_x <= tx2 + g_win_size[0] and ty1 <= cur_y <= ty2:
                 color = (224, 224, 224)
-            img = cv2.putText(img, limb.name, (tx, ty), fontFace=font_face, fontScale=font_scale, color=color, lineType=cv2.LINE_AA, thickness=thickness)
+            img = cv2.putText(img, limb.name, (tx, ty), fontFace=font_face, fontScale=self.font_scale, color=color, lineType=cv2.LINE_AA, thickness=thickness)
         return img
 
     def update(self, cur_x=-1, cur_y=-1):
