@@ -85,9 +85,12 @@ class LabelPose:
     def reset_label(self):
         return [[0, 0, 0] for _ in range(self.max_limb_size)]  # [confidence, x_pos, y_pos]
 
-    def circle(self, img, x, y):
-        img = cv2.circle(img, (x, y), 8, (128, 255, 128), thickness=2, lineType=cv2.LINE_AA)
-        img = cv2.circle(img, (x, y), 3, (32, 32, 192), thickness=-1, lineType=cv2.LINE_AA)
+    def circle(self, img, x, y, emphasis=False):
+        img = cv2.circle(img, (x, y), 8, (128, 255, 128), thickness=-1, lineType=cv2.LINE_AA)
+        img = cv2.circle(img, (x, y), 4, (32, 32, 192), thickness=-1, lineType=cv2.LINE_AA)
+        if emphasis:
+            img = cv2.circle(img, (x, y), 16, (128, 255, 128), thickness=-1, lineType=cv2.LINE_AA)
+            img = cv2.circle(img, (x, y), 8, (32, 32, 192), thickness=-1, lineType=cv2.LINE_AA)
         return img
 
     def line_if_valid(self, img, p1, p2):
@@ -140,9 +143,11 @@ class LabelPose:
             img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.BACK.value])
             img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.RIGHT_HIP.value])
             img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.LEFT_HIP.value])
-        for use, x, y in self.cur_label:
+        limb_index = self.get_text_index_if_cursor_in_text(cur_x, cur_y)
+        for i, label in enumerate(self.cur_label):
+            use, x, y = label
             if use == 1:
-                img = self.circle(img, x, y)
+                img = self.circle(img, x, y, i == limb_index)
         img = np.append(img, self.get_limb_guide_img(cur_x, cur_y), axis=1)
         cv2.imshow(g_win_name, img)
 
