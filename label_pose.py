@@ -5,7 +5,7 @@ from enum import Enum, auto
 
 
 g_win_size = (416, 768)
-g_win_name = 'LabelPose v1.0 by Inzapp'
+g_win_name = 'LabelPose v1.1 by Inzapp'
 
 
 class Limb(Enum):
