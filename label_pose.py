@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 
@@ -162,7 +163,6 @@ class LabelPose:
             f.writelines(label_content)
 
     def load_label_if_exists(self, guide=False):
-        import os
         global g_win_size
         label_path = './guide.txt' if guide else self.cur_label_path
         if os.path.exists(label_path) and os.path.isfile(label_path):
@@ -181,6 +181,25 @@ class LabelPose:
         global g_win_size
         return g_win_size[0] > x and g_win_size[1] > y
 
+    def find_not_labeled_image_index(self):
+        print(f'start to find not labeled file')
+        for i in range(len(self.image_paths)):
+            label_path = f'{self.image_paths[i][:-4]}.txt'
+            if os.path.exists(label_path) and os.path.isfile(label_path):
+                with open(label_path, 'rt') as f:
+                    lines = f.readlines()
+                not_labeled = True
+                for line in lines:
+                    confidence, x, y = list(map(float, line.split()))
+                    if confidence == 1.0:
+                        not_labeled = False
+                        break
+                if not_labeled:
+                    print(f'not labeled file found. index : {i}')
+                    return i
+        print(f'not labeled file not found')
+        return -1
+
     def run(self):
         global g_win_name, g_win_size
         index = 0
@@ -188,9 +207,12 @@ class LabelPose:
         cv2.setMouseCallback(g_win_name, self.mouse_callback)
         self.guide_img = self.resize(cv2.imdecode(np.fromfile('./guide.jpg', dtype=np.uint8), cv2.IMREAD_COLOR), g_win_size)
         self.load_label_if_exists(guide=True)
+        print_log = True
         while True:
             self.cur_image_path = self.image_paths[index]
-            print(f'[{index}] : {self.cur_image_path}')
+            if print_log:
+                print(f'[{index}] : {self.cur_image_path}')
+            print_log = True
             self.cur_label_path = f'{self.cur_image_path[:-4]}.txt'
             self.raw = self.resize(cv2.imdecode(np.fromfile(self.cur_image_path, dtype=np.uint8), cv2.IMREAD_COLOR), g_win_size)
             self.load_label_if_exists()
@@ -222,13 +244,25 @@ class LabelPose:
                     self.limb_index += 1
                     if self.limb_index == self.max_limb_size:
                         self.limb_index = 0
+                    print_log = False
                     print(f'limb index : {self.limb_index}')
                     break
                 elif res == ord('q'):  # go to prev limb
                     self.limb_index -= 1
                     if self.limb_index == -1:
                         self.limb_index = self.max_limb_size - 1
+                    print_log = False
                     print(f'limb index : {self.limb_index}')
+                    break
+                elif res == ord('f'):  # auto find not labeled image
+                    not_labeled_index = self.find_not_labeled_image_index()
+                    if not_labeled_index != -1:
+                        self.cur_label = self.reset_label()
+                        index = not_labeled_index
+                    break
+                elif res == ord('x'):  # remove cur label
+                    self.cur_label = self.reset_label()
+                    self.save_label()
                     break
                 elif res == 27:  # exit if input key was ESC
                     self.save_label()
