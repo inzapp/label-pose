@@ -229,18 +229,31 @@ class LabelPose:
                     self.save_label()
                     exit(0)
 
+    def get_text_index_if_cursor_in_text(self, x, y):
+        global g_win_size
+        for i, position in enumerate(self.text_positions):
+            _, _, tx1, ty1, tx2, ty2 = position
+            if tx1 + g_win_size[0] <= x <= tx2 + g_win_size[0] and ty1 <= y <= ty2:
+                return i
+        return -1
+
     def mouse_callback(self, event, x, y, flag, _):
         if event == 0 and flag == 0:  # no click mouse moving
             self.update(x, y)
         elif event == 4 and flag == 0:  # left click end
-            if not self.is_cursor_in_image(x, y):
-                return
-            self.cur_label[self.limb_index] = [1, x, y]
-            self.limb_index += 1
-            if self.limb_index == self.max_limb_size:
-                self.limb_index = 0
-            self.update()
-            self.save_label()
+            if self.is_cursor_in_image(x, y):
+                self.cur_label[self.limb_index] = [1, x, y]
+                self.limb_index += 1
+                if self.limb_index == self.max_limb_size:
+                    self.limb_index = 0
+                self.update()
+                self.save_label()
+            else:
+                limb_index = self.get_text_index_if_cursor_in_text(x, y)
+                if limb_index != -1:
+                    self.limb_index = limb_index
+                    self.update()
+                    self.save_label()
         elif event == 5 and flag == 0:  # right click end
             if not self.is_cursor_in_image(x, y):
                 return
