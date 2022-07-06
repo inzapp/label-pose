@@ -9,6 +9,8 @@ a : previous image<br>
 e : next limb point<br>
 q : previous limb point<br>
 w : toggle to show skeleton line<br>
+f : auto find and go to not labeled image<br>
+x : remove current label content<br>
 left click : set limb point<br>
 right click : remove limb point<br>
 ESC : exit program<br>
@@ -16,7 +18,7 @@ ESC : exit program<br>
 ## Label format
 Each point is normalized to 0 ~ 1 range value, and save it to txt format like below
 ```
-# use_flag, x_pos, y_pos
+# confidence, x_pos, y_pos
 1.0 0.508434 0.023468
 1.0 0.496386 0.159061
 1.0 0.214458 0.189048
