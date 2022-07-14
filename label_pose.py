@@ -6,7 +6,7 @@ from enum import Enum, auto
 
 
 g_win_size = (416, 768)
-g_win_name = 'LabelPose v1.1 by Inzapp'
+g_win_name = 'LabelPose v2.1 by Inzapp'
 
 
 class Limb(Enum):
@@ -24,8 +24,6 @@ class Limb(Enum):
     LEFT_HIP = auto()
     LEFT_KNEE = auto()
     LEFT_ANKLE = auto()
-    CHEST = auto()
-    BACK = auto()
 
 
 class LabelPose:
@@ -131,19 +129,15 @@ class LabelPose:
             img = self.line_if_valid(img, self.cur_label[Limb.LEFT_SHOULDER.value], self.cur_label[Limb.LEFT_ELBOW.value])
             img = self.line_if_valid(img, self.cur_label[Limb.LEFT_ELBOW.value], self.cur_label[Limb.LEFT_WRIST.value])
 
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_HIP.value], self.cur_label[Limb.LEFT_HIP.value])
+
+            img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_SHOULDER.value], self.cur_label[Limb.RIGHT_HIP.value])
             img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_HIP.value], self.cur_label[Limb.RIGHT_KNEE.value])
             img = self.line_if_valid(img, self.cur_label[Limb.RIGHT_KNEE.value], self.cur_label[Limb.RIGHT_ANKLE.value])
 
+            img = self.line_if_valid(img, self.cur_label[Limb.LEFT_SHOULDER.value], self.cur_label[Limb.LEFT_HIP.value])
             img = self.line_if_valid(img, self.cur_label[Limb.LEFT_HIP.value], self.cur_label[Limb.LEFT_KNEE.value])
             img = self.line_if_valid(img, self.cur_label[Limb.LEFT_KNEE.value], self.cur_label[Limb.LEFT_ANKLE.value])
-
-            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.CHEST.value])
-            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.RIGHT_HIP.value])
-            img = self.line_if_valid(img, self.cur_label[Limb.CHEST.value], self.cur_label[Limb.LEFT_HIP.value])
-
-            img = self.line_if_valid(img, self.cur_label[Limb.NECK.value], self.cur_label[Limb.BACK.value])
-            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.RIGHT_HIP.value])
-            img = self.line_if_valid(img, self.cur_label[Limb.BACK.value], self.cur_label[Limb.LEFT_HIP.value])
         limb_index = self.get_text_index_if_cursor_in_text(cur_x, cur_y)
         for i, label in enumerate(self.cur_label):
             use, x, y = label
@@ -168,7 +162,7 @@ class LabelPose:
         if os.path.exists(label_path) and os.path.isfile(label_path):
             with open(label_path, 'rt') as f:
                 lines = f.readlines()
-            for i in range(len(lines)):
+            for i in range(self.max_limb_size):
                 use, x, y = list(map(float, lines[i].split()))
                 if guide:
                     self.guide_label[i] = [int(use), int(x * float(g_win_size[0])), int(y * float(g_win_size[1]))]
